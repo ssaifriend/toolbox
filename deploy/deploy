@@ -1,0 +1,5 @@
+# composer update, svn to git - composer.lock
+
+# git to svn - memory commit message
+# svn commit type = all, add, modify, delete
+# svn rollback & commit
