@@ -108,4 +108,34 @@ if [ "commit" = $CMD ]; then
 	echo "complete"
 fi
 
-# svn rollback & commit
+# svn rollback
+if [ "rollback" = $CMD ]; then
+	START_REV=$2
+	END_REV=$3
+
+	if [ "" = $START_REV]; then
+		echo "Usage: ${0} ${1} start_rev (end_rev)"
+		exit 1
+	fi
+	if [ "" != $END_REV && $START_REV > $END_REV ]; then
+		echo "start_rev > end_rev"
+		exit 1
+	fi
+
+	if [ "" = $END_REV ]; then
+		SVN_ROLLBACK_COMMAND="svn merge -c -${START_REV} ."
+		COMMIT_MESSAGE="revert r{$START_REV}"
+	else
+		SVN_START_REV=$((START_REV - 1))
+		SVN_ROLLBACK_COMMAND="svn merge -r ${END_REV}:${SVN_START_REV} ."
+		COMMIT_MESSAGE="revert r{$START_REV}:r{$END_REV}"
+	fi
+
+	echo "do revert"
+	cd $SVN_PATH
+	eval $SVN_ROLLBACK_COMMAND
+	eval "svn commit -m ${COMMIT_MESSAGE}"
+
+	cd $CURRENT_PATH
+	echo "complete"
+fi
