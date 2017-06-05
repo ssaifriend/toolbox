@@ -112,15 +112,23 @@ if [ "commit" = $CMD ]; then
 
 	if [ "all" = $COMMIT_TYPE ] || [ "add" = $COMMIT_TYPE ]; then
 		echo "svn add new files"
-		eval "svn st | grep '^?' | sed 's/^? *//' | xargs svn add"
+		FILES="svn st | grep '^?' | sed 's/^? *//'"
+		eval "${FILES[@]} | xargs svn add"
 	fi
-
+	if [ "modify" = $COMMIT_TYPE ]; then
+		FILES="svn st | grep '^M' | sed 's/^M *//'"
+	fi
 	if [ "all" = $COMMIT_TYPE ] || [ "delete" = $COMMIT_TYPE ]; then
 		echo "svn remove deleted files"
-		eval "svn st | grep '^!' | sed 's/^! *//' | xargs svn rm"
+		FILES="svn st | grep '^!' | sed 's/^! *//'"
+		eval "${FILES[@]} | xargs svn rm --force"
 	fi
 
-	eval "svn commit -m '${COMMIT_MESSAGE}'"
+	if [ "all" = $COMMIT_TYPE ]; then
+		eval "svn commit -m '${COMMIT_MESSAGE}'"
+	else
+		eval "svn commit -m '${COMMIT_MESSAGE}' ${FILES[@]}"
+	fi
 
 	cd $CURRENT_PATH
 	echo "complete"
