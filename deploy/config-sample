@@ -5,4 +5,4 @@ GIT_PATH=""
 SVN_PATH=""
 
 # patch file save path
-TMP_PATH="./tmp"
+TMP_PATH="/tmp/toolbox"

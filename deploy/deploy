@@ -44,6 +44,35 @@ if [ "composer" = $CMD ]; then
 	echo "complete"
 fi
 
-# git to svn - memory commit message
+# git to svn - file copy
+if [ "clone" = $CMD ]; then
+	CLONE_PATH=$2
+	COMMIT_ID=$3
+
+	GIT_CLONE_PATH=${GIT_PATH}/${CLONE_PATH}
+	SVN_CLONE_PATH=${SVN_PATH}/${CLONE_PATH}
+
+	if [ ! -e $TMP_PATH ]; then
+		mkdir $TMP_PATH
+	fi
+
+	PATCH_FILE_PATH=${TMP_PATH}/${COMMIT_ID}
+	MAKE_PATCH_COMMAND="git format-patch -1 ${COMMIT_ID} --stdout > ${PATCH_FILE_PATH}"
+	APPLY_PATCH="patch -p1 < ${PATCH_FILE_PATH}"
+
+	echo "make patch file"
+	cd $GIT_CLONE_PATH
+	eval $MAKE_PATCH_COMMAND
+
+	echo "apply patch file"
+	cd $SVN_CLONE_PATH
+	eval $APPLY_PATCH
+
+	cd $CURRENT_PATH
+	rm $PATCH_FILE_PATH
+	echo "complete"
+fi
+
+#COMMIT_MESSAGE=$(git log --pretty=%B -n 1 ${COMMIT_ID})
 # svn commit type = all, add, modify, delete
 # svn rollback & commit
