@@ -96,11 +96,6 @@ if [ "commit" = $CMD ]; then
 		eval "svn st | grep '^?' | sed 's/^? *//' | xargs svn add"
 	fi
 
-	if [ "all" = $COMMIT_TYPE ] || [ "modify" = $COMMIT_TYPE ]; then
-		echo "svn add modify files"
-		eval "svn st | grep '^M' | sed 's/^M *//' | xargs svn add"
-	fi
-
 	if [ "all" = $COMMIT_TYPE ] || [ "delete" = $COMMIT_TYPE ]; then
 		echo "svn remove deleted files"
 		eval "svn st | grep '^!' | sed 's/^! *//' | xargs svn rm"
