@@ -1,4 +1,41 @@
-# composer update, svn to git - composer.lock
+CMD=$1
+
+CURRENT_PATH=$(dirname $0)
+CONFIG_FILE=$(CURRENT_PATH)/config
+if [ -e $CONFIG_FILE ]; then
+    . $CONFIG_FILE
+fi
+
+# composer update and composer.lock file copy from svn to git folder
+if [ "composer" -eq $CMD ]; then
+	PATH=$2
+	PACKAGE=""
+	if ["" -ne $3]; then
+		PACKAGE=$3
+	fi
+
+	COMPOSER_FLAGS="--no-dev --optimize-autoloader"
+
+	UPDATE_COMPOSER_COMMAND="composer update $(COMPOSER_FLAGS) $(PACKAGE)"
+	INSTALL_COMPOSER_COMMAND="composer install $(COMPOSER_FLAGS)"
+
+	SVN_COMPOSER_PATH=$(SVN_PATH)/$(PATH)
+	GIT_COMPOSER_PATH=$(GIT_PATH)/$(PATH)
+
+	echo "update composer - svn"
+	cd $SVN_COMPOSER_PATH
+	eval $UPDATE_COMPOSER_COMMAND
+
+	echo "copy composer.lock"
+	eval "copy -f $(SVN_COMPOSER_PATH)/composer.lock $(GIT_COMPOSER_PATH)/composer.lock"
+
+	echo "install composer - git"
+	cd $GIT_COMPOSER_PATH
+	eval $INSTALL_COMPOSER_COMMAND
+
+	cd $CURRENT_PATH
+	echo "complete"
+fi
 
 # git to svn - memory commit message
 # svn commit type = all, add, modify, delete
