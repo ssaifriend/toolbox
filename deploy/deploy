@@ -62,7 +62,7 @@ if [ "clone" = $CMD ]; then
 	fi
 
 	PATCH_FILE_PATH=${TMP_PATH}/${COMMIT_ID}
-	MAKE_PATCH_COMMAND="git format-patch -1 ${COMMIT_ID} --stdout > ${PATCH_FILE_PATH}"
+	MAKE_PATCH_COMMAND="git format-patch --no-renames -1 ${COMMIT_ID} --stdout > ${PATCH_FILE_PATH}"
 	APPLY_PATCH="patch -p1 < ${PATCH_FILE_PATH}"
 
 	echo "make patch file"
@@ -100,6 +100,11 @@ if [ "commit" = $CMD ]; then
 	COMMIT_ID=$4
 
 	if [ "" != $COMMIT_PATH ] && [ "" != $COMMIT_ID ]; then
+		if [ ! -e ${GIT_PATH}/${COMMIT_PATH} ]; then
+			echo "not exists git path : ${COMMIT_PATH}"
+			exit 1
+		fi
+
 		cd ${GIT_PATH}/${COMMIT_PATH}
 		COMMIT_MESSAGE=$(git log --pretty=%B -n 1 ${COMMIT_ID})
 	else
@@ -108,20 +113,19 @@ if [ "commit" = $CMD ]; then
 	fi
 
 	cd $SVN_PATH
-	eval "svn update"
 
 	if [ "all" = $COMMIT_TYPE ] || [ "add" = $COMMIT_TYPE ]; then
 		echo "svn add new files"
-		FILES="svn st | grep '^?' | sed 's/^? *//'"
-		eval "${FILES[@]} | xargs svn add"
+		FILES=$(svn st | grep '^?' | sed 's/^? *//')
+		eval "svn add ${FILES[@]}"
 	fi
 	if [ "modify" = $COMMIT_TYPE ]; then
-		FILES="svn st | grep '^M' | sed 's/^M *//'"
+		FILES=$(svn st | grep '^M' | sed 's/^M *//')
 	fi
 	if [ "all" = $COMMIT_TYPE ] || [ "delete" = $COMMIT_TYPE ]; then
 		echo "svn remove deleted files"
-		FILES="svn st | grep '^!' | sed 's/^! *//'"
-		eval "${FILES[@]} | xargs svn rm --force"
+		FILES=$(svn st | grep '^!' | sed 's/^! *//')
+		eval "svn rm --force ${FILES[@]}"
 	fi
 
 	if [ "all" = $COMMIT_TYPE ]; then
@@ -139,16 +143,16 @@ if [ "rollback" = $CMD ]; then
 	START_REV=$2
 	END_REV=$3
 
-	if [ "" = $START_REV]; then
+	if [[ "" = $START_REV ]]; then
 		echo "Usage: ${0} ${1} start_rev (end_rev)"
 		exit 1
 	fi
-	if [ "" != $END_REV && $START_REV > $END_REV ]; then
+	if [[ "" != $END_REV ]] && [[ $START_REV -gt $END_REV ]]; then
 		echo "start_rev > end_rev"
 		exit 1
 	fi
 
-	if [ "" = $END_REV ]; then
+	if [[ "" = $END_REV ]]; then
 		SVN_ROLLBACK_COMMAND="svn merge -c -${START_REV} ."
 		COMMIT_MESSAGE="revert r{$START_REV}"
 	else
