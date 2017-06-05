@@ -89,6 +89,7 @@ if [ "commit" = $CMD ]; then
 	fi
 
 	cd $SVN_PATH
+	eval "svn update"
 
 	if [ "all" = $COMMIT_TYPE ] || [ "add" = $COMMIT_TYPE ]; then
 		echo "svn add new files"
