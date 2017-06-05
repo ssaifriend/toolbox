@@ -72,11 +72,15 @@ if [ "clone" = $CMD ]; then
 	if [ "master" != $CURRENT_BRANCH ]; then
 		echo "git branch is ${CURRENT_BRANCH}. really clone? [Y/N]"
 		read CONTINUE_INPUT
-		if [ "N" = $CONTINUE_INPUT ] || [ "n" = $CONTINUE_INPUT ] || [ "" = $CONTINUE_INPUT ]; then
-			exit 1;
+		if [ "Y" = $CONTINUE_INPUT ] || [ "y" = $CONTINUE_INPUT ]; then
+			CONTINUE_INPUT = "Y"
+		fi
+		if [ "Y" != $CONTINUE_INPUT ]; then
+			exit 1
 		fi
 	fi
 
+	eval "git pull"
 	eval $MAKE_PATCH_COMMAND
 
 	echo "apply patch file"
