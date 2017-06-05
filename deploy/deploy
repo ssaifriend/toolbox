@@ -66,6 +66,7 @@ if [ "clone" = $CMD ]; then
 
 	echo "apply patch file"
 	cd $SVN_CLONE_PATH
+	eval "svn update"
 	eval $APPLY_PATCH
 
 	cd $CURRENT_PATH
@@ -76,9 +77,11 @@ fi
 # svn commit type = all, add, modify, delete
 if [ "commit" = $CMD ]; then
 	COMMIT_TYPE=$2
-	COMMIT_ID=$3
+	COMMIT_PATH=$3
+	COMMIT_ID=$4
 
-	if [ "" != $COMMIT_ID ]; then
+	if [ "" != $COMMIT_PATH ] && [ "" != $COMMIT_ID ]; then
+		cd ${GIT_PATH}/${COMMIT_PATH}
 		COMMIT_MESSAGE=$(git log --pretty=%B -n 1 ${COMMIT_ID})
 	else
 		echo "enter commit message"
@@ -87,22 +90,22 @@ if [ "commit" = $CMD ]; then
 
 	cd $SVN_PATH
 
-	if [ "all" = $COMMIT_TYPE || "add" = $COMMIT_TYPE ]; then
+	if [ "all" = $COMMIT_TYPE ] || [ "add" = $COMMIT_TYPE ]; then
 		echo "svn add new files"
 		eval "svn st | grep '^?' | sed 's/^? *//' | xargs svn add"
 	fi
 
-	if [ "all" = $COMMIT_TYPE || "modify" = $COMMIT_TYPE ]; then
+	if [ "all" = $COMMIT_TYPE ] || [ "modify" = $COMMIT_TYPE ]; then
 		echo "svn add modify files"
-		eval "svn st | grep '^M' | sed 's/^? *//' | xargs svn add"
+		eval "svn st | grep '^M' | sed 's/^M *//' | xargs svn add"
 	fi
 
-	if [ "all" = $COMMIT_TYPE || "delete" = $COMMIT_TYPE ]; then
+	if [ "all" = $COMMIT_TYPE ] || [ "delete" = $COMMIT_TYPE ]; then
 		echo "svn remove deleted files"
-		eval "svn st | grep '^!' | sed 's/^? *//' | xargs svn rm"
+		eval "svn st | grep '^!' | sed 's/^! *//' | xargs svn rm"
 	fi
 
-	eval "svn commit -m ${COMMIT_MESSAGE}"
+	eval "svn commit -m '${COMMIT_MESSAGE}'"
 
 	cd $CURRENT_PATH
 	echo "complete"
@@ -134,7 +137,7 @@ if [ "rollback" = $CMD ]; then
 	echo "do revert"
 	cd $SVN_PATH
 	eval $SVN_ROLLBACK_COMMAND
-	eval "svn commit -m ${COMMIT_MESSAGE}"
+	eval "svn commit -m '${COMMIT_MESSAGE}'"
 
 	cd $CURRENT_PATH
 	echo "complete"
