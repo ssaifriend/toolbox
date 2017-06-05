@@ -1,5 +1,141 @@
-# composer update, svn to git - composer.lock
+#!/bin/bash
+CMD=$1
 
-# git to svn - memory commit message
+CURRENT_PATH=$(dirname $0)
+CONFIG_FILE=${CURRENT_PATH}/config
+if [ -e $CONFIG_FILE ]; then
+    . $CONFIG_FILE
+fi
+
+# composer update and composer.lock file copy from svn to git folder
+if [ "composer" = $CMD ]; then
+	UPDATE_PATH=$2
+	PACKAGE=""
+	if ["" != $3]; then
+		PACKAGE=$3
+	fi
+
+	COMPOSER_PATH=$(command -v "composer")
+	if [ "" = $COMPOSER_PATH ]; then
+		echo "not installed composer"
+		exit 1
+	fi
+
+	COMPOSER_FLAGS="--no-dev --optimize-autoloader"
+
+	UPDATE_COMPOSER_COMMAND="composer update ${COMPOSER_FLAGS} ${PACKAGE}"
+	INSTALL_COMPOSER_COMMAND="composer install ${COMPOSER_FLAGS}"
+
+	SVN_COMPOSER_PATH=${SVN_PATH}/${UPDATE_PATH}
+	GIT_COMPOSER_PATH=${GIT_PATH}/${UPDATE_PATH}
+
+	echo "update composer - svn"
+	cd $SVN_COMPOSER_PATH
+	eval $UPDATE_COMPOSER_COMMAND
+
+	echo "copy composer.lock"
+	eval "cp -f ${SVN_COMPOSER_PATH}/composer.lock ${GIT_COMPOSER_PATH}/composer.lock"
+
+	echo "install composer - git"
+	cd $GIT_COMPOSER_PATH
+	eval $INSTALL_COMPOSER_COMMAND
+
+	cd $CURRENT_PATH
+	echo "complete"
+fi
+
+# git to svn - file copy
+if [ "clone" = $CMD ]; then
+	CLONE_PATH=$2
+	COMMIT_ID=$3
+
+	GIT_CLONE_PATH=${GIT_PATH}/${CLONE_PATH}
+	SVN_CLONE_PATH=${SVN_PATH}/${CLONE_PATH}
+
+	if [ ! -e $TMP_PATH ]; then
+		mkdir $TMP_PATH
+	fi
+
+	PATCH_FILE_PATH=${TMP_PATH}/${COMMIT_ID}
+	MAKE_PATCH_COMMAND="git format-patch -1 ${COMMIT_ID} --stdout > ${PATCH_FILE_PATH}"
+	APPLY_PATCH="patch -p1 < ${PATCH_FILE_PATH}"
+
+	echo "make patch file"
+	cd $GIT_CLONE_PATH
+	eval $MAKE_PATCH_COMMAND
+
+	echo "apply patch file"
+	cd $SVN_CLONE_PATH
+	eval $APPLY_PATCH
+
+	cd $CURRENT_PATH
+	rm $PATCH_FILE_PATH
+	echo "complete"
+fi
+
 # svn commit type = all, add, modify, delete
-# svn rollback & commit
+if [ "commit" = $CMD ]; then
+	COMMIT_TYPE=$2
+	COMMIT_ID=$3
+
+	if [ "" != $COMMIT_ID ]; then
+		COMMIT_MESSAGE=$(git log --pretty=%B -n 1 ${COMMIT_ID})
+	else
+		echo "enter commit message"
+		read COMMIT_MESSAGE
+	fi
+
+	cd $SVN_PATH
+
+	if [ "all" = $COMMIT_TYPE || "add" = $COMMIT_TYPE ]; then
+		echo "svn add new files"
+		eval "svn st | grep '^?' | sed 's/^? *//' | xargs svn add"
+	fi
+
+	if [ "all" = $COMMIT_TYPE || "modify" = $COMMIT_TYPE ]; then
+		echo "svn add modify files"
+		eval "svn st | grep '^M' | sed 's/^? *//' | xargs svn add"
+	fi
+
+	if [ "all" = $COMMIT_TYPE || "delete" = $COMMIT_TYPE ]; then
+		echo "svn remove deleted files"
+		eval "svn st | grep '^!' | sed 's/^? *//' | xargs svn rm"
+	fi
+
+	eval "svn commit -m ${COMMIT_MESSAGE}"
+
+	cd $CURRENT_PATH
+	echo "complete"
+fi
+
+# svn rollback
+if [ "rollback" = $CMD ]; then
+	START_REV=$2
+	END_REV=$3
+
+	if [ "" = $START_REV]; then
+		echo "Usage: ${0} ${1} start_rev (end_rev)"
+		exit 1
+	fi
+	if [ "" != $END_REV && $START_REV > $END_REV ]; then
+		echo "start_rev > end_rev"
+		exit 1
+	fi
+
+	if [ "" = $END_REV ]; then
+		SVN_ROLLBACK_COMMAND="svn merge -c -${START_REV} ."
+		COMMIT_MESSAGE="revert r{$START_REV}"
+	else
+		SVN_START_REV=$((START_REV - 1))
+		SVN_ROLLBACK_COMMAND="svn merge -r ${END_REV}:${SVN_START_REV} ."
+		COMMIT_MESSAGE="revert r{$START_REV}:r{$END_REV}"
+	fi
+
+	echo "do revert"
+	cd $SVN_PATH
+	eval $SVN_ROLLBACK_COMMAND
+	eval "svn commit -m ${COMMIT_MESSAGE}"
+
+	cd $CURRENT_PATH
+	echo "complete"
+fi

@@ -1,0 +1,8 @@
+# base git path
+GIT_PATH=""
+
+# base svn path
+SVN_PATH=""
+
+# patch file save path
+TMP_PATH="/tmp/toolbox"
