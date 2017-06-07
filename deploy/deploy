@@ -11,12 +11,12 @@ fi
 if [ "composer" = $CMD ]; then
 	UPDATE_PATH=$2
 	PACKAGE=""
-	if ["" != $3]; then
+	if [[ "" != $3 ]]; then
 		PACKAGE=$3
 	fi
 
 	COMPOSER_PATH=$(command -v "composer")
-	if [ "" = $COMPOSER_PATH ]; then
+	if [[ "" = $COMPOSER_PATH ]]; then
 		echo "not installed composer"
 		exit 1
 	fi
@@ -49,7 +49,7 @@ if [ "clone" = $CMD ]; then
 	CLONE_PATH=$2
 	COMMIT_ID=$3
 
-	if [ "" = $COMMIT_ID ]; then
+	if [[ "" = $COMMIT_ID ]]; then
 		echo "Usage: ${0} ${1} clone_path commit_id"
 		exit 1;
 	fi
@@ -69,13 +69,13 @@ if [ "clone" = $CMD ]; then
 	cd $GIT_CLONE_PATH
 
 	CURRENT_BRANCH=$(git branch | grep '^*' | sed 's/^* *//')
-	if [ "master" != $CURRENT_BRANCH ]; then
+	if [[ "master" != $CURRENT_BRANCH ]]; then
 		echo "git branch is ${CURRENT_BRANCH}. really clone? [Y/N]"
 		read CONTINUE_INPUT
-		if [ "Y" = $CONTINUE_INPUT ] || [ "y" = $CONTINUE_INPUT ]; then
+		if [[ "Y" = $CONTINUE_INPUT ]] || [[ "y" = $CONTINUE_INPUT ]]; then
 			CONTINUE_INPUT = "Y"
 		fi
-		if [ "Y" != $CONTINUE_INPUT ]; then
+		if [[ "Y" != $CONTINUE_INPUT ]]; then
 			exit 1
 		fi
 	fi
@@ -94,12 +94,17 @@ if [ "clone" = $CMD ]; then
 fi
 
 # svn commit type = all, add, modify, delete
-if [ "commit" = $CMD ]; then
+if [[ "commit" = $CMD ]]; then
 	COMMIT_TYPE=$2
 	COMMIT_PATH=$3
 	COMMIT_ID=$4
 
-	if [ "" != $COMMIT_PATH ] && [ "" != $COMMIT_ID ]; then
+	if [[ "add" != $COMMIT_TYPE ]] && [[ "modify" != $COMMIT_TYPE ]] && [[ "delete" = $COMMIT_TYPE ]] && [[ "all" = $COMMIT_TYPE ]]; then
+		echo "not support commit_type"
+		exit 1
+	fi
+
+	if [[ "" != $COMMIT_PATH ]] && [[ "" != $COMMIT_ID ]]; then
 		if [ ! -e ${GIT_PATH}/${COMMIT_PATH} ]; then
 			echo "not exists git path : ${COMMIT_PATH}"
 			exit 1
@@ -107,31 +112,48 @@ if [ "commit" = $CMD ]; then
 
 		cd ${GIT_PATH}/${COMMIT_PATH}
 		COMMIT_MESSAGE=$(git log --pretty=%B -n 1 ${COMMIT_ID})
+
+		if [[ "add" = $COMMIT_TYPE ]] || [[ "modify" = $COMMIT_TYPE ]] || [[ "delete" = $COMMIT_TYPE ]]; then
+			COMMIT_MESSAGE=$(echo ${COMMIT_MESSAGE} | sed "1s/$/ \#${COMMIT_TYPE}/")
+		fi
 	else
 		echo "enter commit message"
 		read COMMIT_MESSAGE
 	fi
 
+	if [[ "" = $COMMIT_MESSAGE ]]; then
+		echo "no commit message!!!"
+		exit 1
+	fi
+
 	cd $SVN_PATH
 
-	if [ "all" = $COMMIT_TYPE ] || [ "add" = $COMMIT_TYPE ]; then
+	if [[ "all" = $COMMIT_TYPE ]] || [[ "add" = $COMMIT_TYPE ]]; then
 		echo "svn add new files"
 		FILES=$(svn st | grep '^?' | sed 's/^? *//')
-		eval "svn add ${FILES[@]}"
+		if [ "$FILES" != "" ]; then
+			eval "svn add ${FILES[@]}"
+		fi
 	fi
-	if [ "modify" = $COMMIT_TYPE ]; then
+	if [[ "modify" = $COMMIT_TYPE ]]; then
 		FILES=$(svn st | grep '^M' | sed 's/^M *//')
 	fi
-	if [ "all" = $COMMIT_TYPE ] || [ "delete" = $COMMIT_TYPE ]; then
+	if [[ "all" = $COMMIT_TYPE ]] || [[ "delete" = $COMMIT_TYPE ]]; then
 		echo "svn remove deleted files"
 		FILES=$(svn st | grep '^!' | sed 's/^! *//')
-		eval "svn rm --force ${FILES[@]}"
+		if [ "$FILES" != "" ]; then
+			eval "svn rm --force ${FILES[@]}"
+		fi
 	fi
 
-	if [ "all" = $COMMIT_TYPE ]; then
+	if [[ "all" = $COMMIT_TYPE ]]; then
 		eval "svn commit -m '${COMMIT_MESSAGE}'"
 	else
-		eval "svn commit -m '${COMMIT_MESSAGE}' ${FILES[@]}"
+		if [ "$FILES" != "" ]; then
+			eval "svn commit -m '${COMMIT_MESSAGE}' ${FILES[@]}"
+		else
+			echo "no commit files!!"
+		fi
 	fi
 
 	cd $CURRENT_PATH
@@ -139,7 +161,7 @@ if [ "commit" = $CMD ]; then
 fi
 
 # svn rollback
-if [ "rollback" = $CMD ]; then
+if [[ "rollback" = $CMD ]]; then
 	START_REV=$2
 	END_REV=$3
 
