@@ -1,0 +1,40 @@
+#!/bin/bash
+# svn rollback
+
+CURRENT_PATH=$(dirname $0)
+CONFIG_FILE=${CURRENT_PATH}/config
+if [ ! -e $CONFIG_FILE ]; then
+	echo "no config file. please make config file"
+	exit 1
+fi
+
+. $CONFIG_FILE
+
+START_REV=$1
+END_REV=$2
+
+if [[ "" = $START_REV ]]; then
+	echo "Usage: ${0} start_rev (end_rev)"
+	exit 1
+fi
+if [[ "" != $END_REV ]] && [[ $START_REV -gt $END_REV ]]; then
+	echo "start_rev > end_rev"
+	exit 1
+fi
+
+if [[ "" = $END_REV ]]; then
+	SVN_ROLLBACK_COMMAND="svn merge -c -${START_REV} ."
+	COMMIT_MESSAGE="revert r{$START_REV}"
+else
+	SVN_START_REV=$((START_REV - 1))
+	SVN_ROLLBACK_COMMAND="svn merge -r ${END_REV}:${SVN_START_REV} ."
+	COMMIT_MESSAGE="revert r{$START_REV}:r{$END_REV}"
+fi
+
+echo "do revert"
+cd $SVN_PATH
+eval $SVN_ROLLBACK_COMMAND
+eval "svn commit -m '${COMMIT_MESSAGE}'"
+
+cd $CURRENT_PATH
+echo "complete"

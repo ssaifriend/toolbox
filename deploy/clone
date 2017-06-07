@@ -1,0 +1,57 @@
+#!/bin/bash
+# git to svn - file copy
+
+CURRENT_PATH=$(dirname $0)
+CONFIG_FILE=${CURRENT_PATH}/config
+if [ ! -e $CONFIG_FILE ]; then
+	echo "no config file. please make config file"
+	exit 1
+fi
+
+. $CONFIG_FILE
+
+CLONE_PATH=$1
+COMMIT_ID=$2
+
+if [[ "" = $COMMIT_ID ]]; then
+	echo "Usage: ${0} clone_path commit_id"
+	exit 1;
+fi
+
+GIT_CLONE_PATH=${GIT_PATH}/${CLONE_PATH}
+SVN_CLONE_PATH=${SVN_PATH}/${CLONE_PATH}
+
+if [ ! -e $TMP_PATH ]; then
+	mkdir $TMP_PATH
+fi
+
+PATCH_FILE_PATH=${TMP_PATH}/${COMMIT_ID}
+MAKE_PATCH_COMMAND="git format-patch --no-renames -1 ${COMMIT_ID} --stdout > ${PATCH_FILE_PATH}"
+APPLY_PATCH="patch -p1 < ${PATCH_FILE_PATH}"
+
+echo "make patch file"
+cd $GIT_CLONE_PATH
+
+CURRENT_BRANCH=$(git branch | grep '^*' | sed 's/^* *//')
+if [[ "master" != $CURRENT_BRANCH ]]; then
+	echo "git branch is ${CURRENT_BRANCH}. really clone? [Y/N]"
+	read CONTINUE_INPUT
+	if [[ "Y" = $CONTINUE_INPUT ]] || [[ "y" = $CONTINUE_INPUT ]]; then
+		CONTINUE_INPUT = "Y"
+	fi
+	if [[ "Y" != $CONTINUE_INPUT ]]; then
+		exit 1
+	fi
+fi
+
+eval "git pull"
+eval $MAKE_PATCH_COMMAND
+
+echo "apply patch file"
+cd $SVN_CLONE_PATH
+eval "svn update"
+eval $APPLY_PATCH
+
+cd $CURRENT_PATH
+rm $PATCH_FILE_PATH
+echo "complete"

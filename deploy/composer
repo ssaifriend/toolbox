@@ -1,0 +1,45 @@
+#!/bin/bash
+# composer update and composer.lock file copy from svn to git folder
+
+CURRENT_PATH=$(dirname $0)
+CONFIG_FILE=${CURRENT_PATH}/config
+if [ ! -e $CONFIG_FILE ]; then
+	echo "no config file. please make config file"
+	exit 1
+fi
+
+. $CONFIG_FILE
+
+UPDATE_PATH=$1
+PACKAGE=""
+if [[ "" != $2 ]]; then
+	PACKAGE=$2
+fi
+
+COMPOSER_PATH=$(command -v "composer")
+if [[ "" = $COMPOSER_PATH ]]; then
+	echo "not installed composer"
+	exit 1
+fi
+
+COMPOSER_FLAGS="--no-dev --optimize-autoloader"
+
+UPDATE_COMPOSER_COMMAND="composer update ${COMPOSER_FLAGS} ${PACKAGE}"
+INSTALL_COMPOSER_COMMAND="composer install ${COMPOSER_FLAGS}"
+
+SVN_COMPOSER_PATH=${SVN_PATH}/${UPDATE_PATH}
+GIT_COMPOSER_PATH=${GIT_PATH}/${UPDATE_PATH}
+
+echo "update composer - svn"
+cd $SVN_COMPOSER_PATH
+eval $UPDATE_COMPOSER_COMMAND
+
+echo "copy composer.lock"
+eval "cp -f ${SVN_COMPOSER_PATH}/composer.lock ${GIT_COMPOSER_PATH}/composer.lock"
+
+echo "install composer - git"
+cd $GIT_COMPOSER_PATH
+eval $INSTALL_COMPOSER_COMMAND
+
+cd $CURRENT_PATH
+echo "complete"

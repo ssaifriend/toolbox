@@ -1,0 +1,75 @@
+#!/bin/bash
+# svn commit type = all, add, modify, delete
+
+CURRENT_PATH=$(dirname $0)
+CONFIG_FILE=${CURRENT_PATH}/config
+if [ ! -e $CONFIG_FILE ]; then
+	echo "no config file. please make config file"
+	exit 1
+fi
+
+. $CONFIG_FILE
+
+COMMIT_TYPE=$1
+COMMIT_PATH=$2
+COMMIT_ID=$3
+
+if [[ "add" != $COMMIT_TYPE ]] && [[ "modify" != $COMMIT_TYPE ]] && [[ "delete" = $COMMIT_TYPE ]] && [[ "all" = $COMMIT_TYPE ]]; then
+	echo "not support commit_type"
+	exit 1
+fi
+
+if [[ "" != $COMMIT_PATH ]] && [[ "" != $COMMIT_ID ]]; then
+	if [ ! -e ${GIT_PATH}/${COMMIT_PATH} ]; then
+		echo "not exists git path : ${COMMIT_PATH}"
+		exit 1
+	fi
+
+	cd ${GIT_PATH}/${COMMIT_PATH}
+	COMMIT_MESSAGE=$(git log --pretty=%B -n 1 ${COMMIT_ID})
+
+	if [[ "add" = $COMMIT_TYPE ]] || [[ "modify" = $COMMIT_TYPE ]] || [[ "delete" = $COMMIT_TYPE ]]; then
+		COMMIT_MESSAGE=$(echo ${COMMIT_MESSAGE} | sed "1s/$/ \#${COMMIT_TYPE}/")
+	fi
+else
+	echo "enter commit message"
+	read COMMIT_MESSAGE
+fi
+
+if [[ "" = $COMMIT_MESSAGE ]]; then
+	echo "no commit message!!!"
+	exit 1
+fi
+
+cd $SVN_PATH
+
+if [[ "all" = $COMMIT_TYPE ]] || [[ "add" = $COMMIT_TYPE ]]; then
+	echo "svn add new files"
+	FILES=$(svn st | grep '^?' | sed 's/^? *//')
+	if [ "$FILES" != "" ]; then
+		eval "svn add ${FILES[@]}"
+	fi
+fi
+if [[ "modify" = $COMMIT_TYPE ]]; then
+	FILES=$(svn st | grep '^M' | sed 's/^M *//')
+fi
+if [[ "all" = $COMMIT_TYPE ]] || [[ "delete" = $COMMIT_TYPE ]]; then
+	echo "svn remove deleted files"
+	FILES=$(svn st | grep '^!' | sed 's/^! *//')
+	if [ "$FILES" != "" ]; then
+		eval "svn rm --force ${FILES[@]}"
+	fi
+fi
+
+if [[ "all" = $COMMIT_TYPE ]]; then
+	eval "svn commit -m '${COMMIT_MESSAGE}'"
+else
+	if [ "$FILES" != "" ]; then
+		eval "svn commit -m '${COMMIT_MESSAGE}' ${FILES[@]}"
+	else
+		echo "no commit files!!"
+	fi
+fi
+
+cd $CURRENT_PATH
+echo "complete"
