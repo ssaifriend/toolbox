@@ -1,0 +1,15 @@
+#!/bin/bash
+# git to svn - file copy & svn all commit
+
+COMMIT_PATH=$1
+COMMIT_ID=$2
+
+if [[ "" = $COMMIT_ID ]]; then
+	echo "Usage: ${0} commit_path commit_id"
+fi
+
+CLONE_COMMAND="./clone ${COMMIT_PATH} ${COMMIT_ID}"
+SVN_ALL_COMMIT_COMMAND="./commit all ${COMMIT_PATH} ${COMMIT_ID}"
+
+eval $CLONE_COMMAND
+eval $SVN_ALL_COMMIT_COMMAND
