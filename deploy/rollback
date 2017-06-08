@@ -24,11 +24,11 @@ fi
 
 if [[ "" = $END_REV ]]; then
 	SVN_ROLLBACK_COMMAND="svn merge -c -${START_REV} ."
-	COMMIT_MESSAGE="revert r{$START_REV}"
+	COMMIT_MESSAGE="revert r${START_REV}"
 else
 	SVN_START_REV=$((START_REV - 1))
 	SVN_ROLLBACK_COMMAND="svn merge -r ${END_REV}:${SVN_START_REV} ."
-	COMMIT_MESSAGE="revert r{$START_REV}:r{$END_REV}"
+	COMMIT_MESSAGE="revert r${START_REV}:r${END_REV}"
 fi
 
 echo "do revert"
