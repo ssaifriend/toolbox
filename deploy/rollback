@@ -33,6 +33,7 @@ fi
 
 echo "do revert"
 cd $SVN_PATH
+eval "svn update"
 eval $SVN_ROLLBACK_COMMAND
 eval "svn commit -m '${COMMIT_MESSAGE}'"
 
