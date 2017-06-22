@@ -12,10 +12,9 @@ fi
 
 CLONE_PATH=$1
 COMMIT_ID=$2
-START_COMMIT_ID=$3
 
 if [[ "" = $COMMIT_ID ]]; then
-	echo "Usage: ${0} clone_path commit_id (start_commit_id)"
+	echo "Usage: ${0} clone_path commit_id"
 	exit 1
 fi
 
@@ -28,14 +27,7 @@ fi
 
 PATCH_FILE_PATH=${TMP_PATH}/${COMMIT_ID}
 
-MAKE_RANGE_PATCH_COMMAND=""
-RANGE_APPLY_PATCH=""
-if [[ "" != $START_COMMIT_ID ]]; then
-	MAKE_RANGE_PATCH_COMMAND="git format-patch --no-renames ${START_COMMIT_ID}..${COMMIT_ID} --stdout > ${PATCH_FILE_PATH}_all"
-	RANGE_APPLY_PATCH="patch -p1 < ${PATCH_FILE_PATH}_all"
-fi
-
-MAKE_PATCH_COMMAND="git format-patch --no-renames -1 ${COMMIT_ID} --stdout > ${PATCH_FILE_PATH}"
+MAKE_PATCH_COMMAND="git log -p --pretty=email --stat -m --no-renames --first-parent -1 ${COMMIT_ID} > ${PATCH_FILE_PATH}"
 APPLY_PATCH="patch -p1 < ${PATCH_FILE_PATH}"
 
 echo "make patch file"
@@ -54,18 +46,12 @@ if [[ "master" != $CURRENT_BRANCH ]]; then
 fi
 
 eval "git pull"
-if [[ "" != $MAKE_RANGE_PATCH_COMMAND ]]; then
-	eval $MAKE_RANGE_PATCH_COMMAND
-fi
 eval $MAKE_PATCH_COMMAND
 
 echo "apply patch file"
 cd $SVN_CLONE_PATH
 
 eval "svn update"
-if [[ "" != $RANGE_APPLY_PATCH ]]; then
-	eval $RANGE_APPLY_PATCH
-fi
 eval $APPLY_PATCH
 
 cd $CURRENT_PATH
