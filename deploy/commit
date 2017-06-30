@@ -13,6 +13,7 @@ fi
 COMMIT_TYPE=$1
 COMMIT_PATH=$2
 COMMIT_ID=$3
+COMMIT_MESSAGE_FILE=""
 
 if [[ "add" != $COMMIT_TYPE ]] && [[ "modify" != $COMMIT_TYPE ]] && [[ "delete" = $COMMIT_TYPE ]] && [[ "all" = $COMMIT_TYPE ]]; then
 	echo "not support commit_type"
@@ -26,19 +27,25 @@ if [[ "" != $COMMIT_PATH ]] && [[ "" != $COMMIT_ID ]]; then
 	fi
 
 	cd ${GIT_PATH}/${COMMIT_PATH}
-	COMMIT_MESSAGE=$(git log --pretty=%B -n 1 ${COMMIT_ID})
+
+	COMMIT_MESSAGE_FILE=${TMP_PATH}/${COMMIT_ID}
+	eval "git log --pretty=%B -n 1 ${COMMIT_ID} > ${COMMIT_MESSAGE_FILE}"
 
 	if [[ "add" = $COMMIT_TYPE ]] || [[ "modify" = $COMMIT_TYPE ]] || [[ "delete" = $COMMIT_TYPE ]]; then
-		COMMIT_MESSAGE=$(echo ${COMMIT_MESSAGE} | sed "1s/$/ \#${COMMIT_TYPE}/")
+		eval "sed '1s/$/ \#${COMMIT_TYPE}/' ${COMMIT_MESSAGE_FILE} > ${COMMIT_MESSAGE_FILE}.modify"
+		eval "mv ${COMMIT_MESSAGE_FILE}.modify ${COMMIT_MESSAGE_FILE}"
 	fi
 else
 	echo "enter commit message"
 	read COMMIT_MESSAGE
-fi
 
-if [[ "" = $COMMIT_MESSAGE ]]; then
-	echo "no commit message!!!"
-	exit 1
+	if [[ "" = $COMMIT_MESSAGE ]]; then
+		echo "no commit message!!!"
+		exit 1
+	fi
+
+	COMMIT_MESSAGE_FILE=${TMP_PATH}/${COMMIT_TYPE}
+	eval "echo '${COMMIT_MESSAGE}' > ${COMMIT_MESSAGE_FILE}"
 fi
 
 cd $SVN_PATH
@@ -62,22 +69,24 @@ if [[ "all" = $COMMIT_TYPE ]] || [[ "delete" = $COMMIT_TYPE ]]; then
 fi
 
 if [[ "all" = $COMMIT_TYPE ]]; then
-	eval "svn commit -m '${COMMIT_MESSAGE}'"
+	eval "svn commit -F ${COMMIT_MESSAGE_FILE}"
 else
 	if [ "$FILES" != "" ]; then
 		if [[ "add" = $COMMIT_TYPE ]]; then
-			eval "svn st | grep '^A' | sed 's/^A *//' | xargs svn commit -m '${COMMIT_MESSAGE}'"
+			eval "svn st | grep '^A' | sed 's/^A *//' | xargs svn commit -F ${COMMIT_MESSAGE_FILE}"
 		fi
 		if [[ "modify" = $COMMIT_TYPE ]]; then
-			eval "svn st | grep '^M' | sed 's/^M *//' | xargs svn commit -m '${COMMIT_MESSAGE}'"
+			eval "svn st | grep '^M' | sed 's/^M *//' | xargs svn commit -F ${COMMIT_MESSAGE_FILE}"
 		fi
 		if [[ "delete" = $COMMIT_TYPE ]]; then
-			eval "svn st | grep '^D' | sed 's/^D *//' | xargs svn commit -m '${COMMIT_MESSAGE}'"
+			eval "svn st | grep '^D' | sed 's/^D *//' | xargs svn commit -F ${COMMIT_MESSAGE_FILE}"
 		fi
 	else
 		echo "no commit files!!"
 	fi
 fi
+
+rm $COMMIT_MESSAGE_FILE
 
 cd $CURRENT_PATH
 echo "complete"
