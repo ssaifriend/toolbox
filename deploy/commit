@@ -47,7 +47,7 @@ if [[ "all" = $COMMIT_TYPE ]] || [[ "add" = $COMMIT_TYPE ]]; then
 	echo "svn add new files"
 	FILES=$(svn st | grep '^?' | sed 's/^? *//')
 	if [ "$FILES" != "" ]; then
-		eval "svn add ${FILES[@]}"
+		eval "svn st | grep '^?' | sed 's/^? *//' | xargs svn add"
 	fi
 fi
 if [[ "modify" = $COMMIT_TYPE ]]; then
@@ -57,7 +57,7 @@ if [[ "all" = $COMMIT_TYPE ]] || [[ "delete" = $COMMIT_TYPE ]]; then
 	echo "svn remove deleted files"
 	FILES=$(svn st | grep '^!' | sed 's/^! *//')
 	if [ "$FILES" != "" ]; then
-		eval "svn rm --force ${FILES[@]}"
+		eval "svn st | grep '^!' | sed 's/^! *//' | xargs svn rm --force"
 	fi
 fi
 
@@ -65,7 +65,15 @@ if [[ "all" = $COMMIT_TYPE ]]; then
 	eval "svn commit -m '${COMMIT_MESSAGE}'"
 else
 	if [ "$FILES" != "" ]; then
-		eval "svn commit -m '${COMMIT_MESSAGE}' ${FILES[@]}"
+		if [[ "add" = $COMMIT_TYPE ]]; then
+			eval "svn st | grep '^A' | sed 's/^A *//' | xargs svn commit -m '${COMMIT_MESSAGE}'"
+		fi
+		if [[ "modify" = $COMMIT_TYPE ]]; then
+			eval "svn st | grep '^M' | sed 's/^M *//' | xargs svn commit -m '${COMMIT_MESSAGE}'"
+		fi
+		if [[ "delete" = $COMMIT_TYPE ]]; then
+			eval "svn st | grep '^D' | sed 's/^D *//' | xargs svn commit -m '${COMMIT_MESSAGE}'"
+		fi
 	else
 		echo "no commit files!!"
 	fi
