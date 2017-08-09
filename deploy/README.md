@@ -8,19 +8,23 @@ git을 주 개발 스크립트로 사용하고, svn을 배포용으로 사용할
 실행 전 config-sample 파일을 config 파일로 복사 후 config 내 경로를 설정해주세요.
 
 ## 스크립트별 사용 방법
+공통 사항
+* 아래 내용에서 arg로 있는 하위경로는 config의 git 폴더 내 하위폴더명 입니다. 최상위인 경우 ./ 를 사용하시면 됩니다.
+* 하위경로가 submodule이나 다른 git repo인 경우 해당 git repo의 git커밋ID를 써야 합니다.
 
-* ./composer 경로 (특정 패키지)
+
+* ./composer 하위경로 (특정 패키지)
   * svn의 composer를 업데이트 후 git의 동일 경로에 composer.lock을 복사한 뒤, composer install 합니다.
   * require-dev는 설치되지 않습니다.
   * 특정 패키지를 입력 한 경우 해당 패키지만 업데이트 합니다.
-* ./clone 경로 커밋ID
+* ./clone 하위경로 git커밋ID
   * git의 commit을 svn에 적용합니다. (merge 커밋도 지원)
-* ./commit 커밋종류 (경로) (git커밋ID)
+* ./commit 커밋종류 (하위경로) (git커밋ID)
   * svn을 커밋합니다.
   * 커밋종류 목록: all, add, modify, delete
-  * 경로와 커밋ID를 입력하면 해당 커밋의 커밋 메세지를 그대로 사용합니다.
-  * 경로와 커밋ID가 없으면 커밋 메세지를 직접 입력 할 수 있습니다.
-* ./clone_commit (경로) (git커밋ID)
+  * 하위경로와 커밋ID를 입력하면 해당 커밋의 커밋 메세지를 그대로 사용합니다.
+  * 하위경로와 커밋ID가 없으면 커밋 메세지를 직접 입력 할 수 있습니다. (한 줄 입력만 지원)
+* ./clone_commit (하위경로) (git커밋ID)
   * clone + commit all 명령입니다.
 * ./rollback 시작_rev (종료_rev)
   * svn의 특정 커밋을 롤백 + 커밋합니다.
