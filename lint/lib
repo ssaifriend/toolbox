@@ -1,0 +1,31 @@
+function COPY_TO_STAGING () {
+    local FILES=$1
+    local STAGED_FILES=""
+
+    for FILE in $FILES
+    do
+      mkdir -p "$TMP_PATH/$(dirname $FILE)"
+      cp "$FILE" "$TMP_PATH/$FILE"
+      STAGED_FILES="$STAGED_FILES $TMP_PATH/$FILE"
+    done
+
+    echo $STAGED_FILES
+}
+
+function FILE_FILTER () {
+    local PATTERN=$1
+    local FILES=$@
+    local FILE_FILTERED=""
+
+    for FILE in $FILES
+    do
+        echo "$FILE" | egrep -q "$PATTERN"
+        RETVAL=$?
+        if [ "$RETVAL" -eq "0" ]
+        then
+            FILE_FILTERED="$FILE_FILTERED $FILE"
+        fi
+    done
+
+    echo $FILE_FILTERED
+}

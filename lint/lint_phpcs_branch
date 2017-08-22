@@ -1,0 +1,59 @@
+#!/bin/bash
+
+CURRENT_PATH=$(dirname $0)
+CONFIG_FILE=${CURRENT_PATH}/config
+if [ ! -e $CONFIG_FILE ]; then
+	echo "no config file. please make config file"
+	exit 1
+fi
+
+. $CONFIG_FILE
+. ${CURRENT_PATH}/lib
+
+BRANCH_NAME=$1
+SUB_PATH=$2
+
+if [[ "" = $BRANCH_NAME ]]; then
+	echo "Usage: ${0} branch_name (sub_path)"
+	exit 1
+fi
+
+if [ -e $TMP_PATH ]; then
+    rm -rf $TMP_PATH
+fi
+mkdir $TMP_PATH
+
+FULL_PATH=${GIT_PATH}/${SUB_PATH}
+
+cd ${FULL_PATH}
+eval "git fetch"
+eval "git checkout ${BRANCH_NAME}"
+FILES=$(git log --no-renames --name-only --pretty= master..${BRANCH_NAME} | sort | uniq -u)
+eval "git checkout master"
+eval "git branch -D ${BRANCH_NAME}"
+cd ${CURRENT_PATH}
+
+# execute the code sniffer
+if [ "$PHPCS_ENCODING" != "" ]; then
+    ENCODING="--encoding=$PHPCS_ENCODING"
+else
+    ENCODING=""
+fi
+
+if [ "$PHPCS_IGNORE_WARNINGS" == "1" ]; then
+    IGNORE_WARNINGS="-n"
+else
+    IGNORE_WARNINGS=""
+fi
+
+FILES_TO_CHECK=$(FILE_FILTER ${PHPCS_FILE_PATTERN} ${FILES[@]})
+STAGED_FILES=$(COPY_TO_STAGING $FILES_TO_CHECK)
+
+OUTPUT=$($PHPCS_BIN --colors -s $IGNORE_WARNINGS --standard=$PHPCS_CODING_STANDARD $ENCODING $IGNORE $SNIFFS $STAGED_FILES)
+RETVAL=$?
+
+if [ $RETVAL -ne 0 ]; then
+    echo "$OUTPUT" | less -R
+fi
+
+rm -rf $TMP_PATH

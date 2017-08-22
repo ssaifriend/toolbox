@@ -1,0 +1,17 @@
+# base git path
+GIT_PATH=""
+
+# patch file save path
+TMP_PATH="/tmp/toolbox"
+
+# phpcs lint ruleset path
+PHPCS_CODING_STANDARD=ruleset.xml
+
+# egrep compatible pattern of  files to be checked
+PHPCS_FILE_PATTERN="\.(php)$"
+
+# ignore warnings
+PHPCS_IGNORE_WARNINGS=1
+
+# encoding
+PHPCS_ENCODING=utf-8
