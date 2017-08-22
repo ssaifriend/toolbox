@@ -29,6 +29,9 @@ cd ${FULL_PATH}
 eval "git fetch"
 eval "git checkout ${BRANCH_NAME}"
 FILES=$(git log --no-renames --name-only --pretty= master..${BRANCH_NAME} | sort | uniq -u)
+FILES_TO_CHECK=$(FILE_FILTER ${PHPCS_FILE_PATTERN} ${FILES[@]})
+STAGED_FILES=$(COPY_TO_STAGING $FILES_TO_CHECK)
+
 eval "git checkout master"
 eval "git branch -D ${BRANCH_NAME}"
 cd ${CURRENT_PATH}
@@ -45,9 +48,6 @@ if [ "$PHPCS_IGNORE_WARNINGS" == "1" ]; then
 else
     IGNORE_WARNINGS=""
 fi
-
-FILES_TO_CHECK=$(FILE_FILTER ${PHPCS_FILE_PATTERN} ${FILES[@]})
-STAGED_FILES=$(COPY_TO_STAGING $FILES_TO_CHECK)
 
 OUTPUT=$($PHPCS_BIN --colors -s $IGNORE_WARNINGS --standard=$PHPCS_CODING_STANDARD $ENCODING $IGNORE $SNIFFS $STAGED_FILES)
 RETVAL=$?
