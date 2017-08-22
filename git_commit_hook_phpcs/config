@@ -1,0 +1,38 @@
+# commit hooks
+
+# tmp folder
+TMP_STAGING="/tmp/.git_staging"
+
+# phpcs config
+# path to phpcs "binary"
+PHPCS_BIN=/usr/local/bin/phpcs
+
+# the coding standard, you can also specify a path to your own standard here 
+# e. g. /path/to/my/standard/dir/
+PHPCS_CODING_STANDARD=ruleset.xml
+
+# egrep compatible pattern of  files to be checked
+PHPCS_FILE_PATTERN="\.(php)$"
+
+# ignore warnings
+PHPCS_IGNORE_WARNINGS=1
+
+# encoding
+PHPCS_ENCODING=utf-8
+
+# temporary not use (legacy code problem..)
+PHPCS_USE=1
+
+
+# eslint config
+# patch to eslint
+ESLINT_BIN=/usr/local/bin/eslint
+
+# eslint config path
+ESLINT_CONFIG_PATH=~/.eslintrc.js
+
+# eslint file pattern
+ESLINT_FILE_PATTERN="\.js$"
+
+# temporary not use
+ESLINT_USE=0

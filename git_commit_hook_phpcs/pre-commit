@@ -1,0 +1,169 @@
+#!/bin/bash
+# pre-commit hook for git
+
+# get config
+CONFIG_FILE=$(dirname $0)/config
+if [ -e $CONFIG_FILE ]; then
+    . $CONFIG_FILE
+fi
+
+# stolen from template file
+if git rev-parse --verify HEAD
+then
+    against=HEAD
+else
+    # Initial commit: diff against an empty tree object
+    against=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+fi
+
+# get file list
+FILES=$(git diff-index --name-only --diff-filter=ACMR $against -- )
+
+if [ "$FILES" == "" ]; then
+    echo "No Change Files"
+    exit 0
+fi
+
+# create temporary copy of staging area
+if [ -e $TMP_STAGING ]; then
+    rm -rf $TMP_STAGING
+fi
+mkdir $TMP_STAGING
+
+
+function GET_FILES () {
+    local PATTERN=$1
+    local FILES=$@
+    local FILE_FILTERED=""
+
+    for FILE in $FILES
+    do
+        echo "$FILE" | egrep -q "$PATTERN"
+        RETVAL=$?
+        if [ "$RETVAL" -eq "0" ]
+        then
+            FILE_FILTERED="$FILE_FILTERED $FILE"
+        fi
+    done
+
+    echo $FILE_FILTERED
+}
+
+function COPY_TO_STAGING () {
+    local FILES=$1
+    local STAGED_FILES=""
+
+    # Copy contents of staged version of files to temporary staging area
+    # because we only want the staged version that will be commited and not
+    # the version in the working directory
+    for FILE in $FILES
+    do
+      ID=$(git diff-index $against $FILE | cut -d " " -f4)
+
+      # create staged version of file in temporary staging area with the same
+      # path as the original file so that the phpcs ignore filters can be applied
+      mkdir -p "$TMP_STAGING/$(dirname $FILE)"
+      git cat-file blob $ID > "$TMP_STAGING/$FILE"
+      STAGED_FILES="$STAGED_FILES $TMP_STAGING/$FILE"
+    done
+
+    echo $STAGED_FILES
+}
+
+function DO_PHPCS () {
+    local FILES_TO_CHECK=$1
+
+    # execute the code sniffer
+    if [ "$PHPCS_ENCODING" != "" ]; then
+        ENCODING="--encoding=$PHPCS_ENCODING"
+    else
+        ENCODING=""
+    fi
+
+    if [ "$PHPCS_IGNORE_WARNINGS" == "1" ]; then
+        IGNORE_WARNINGS="-n"
+    else
+        IGNORE_WARNINGS=""
+    fi
+
+    STAGED_FILES=$(COPY_TO_STAGING $FILES_TO_CHECK)
+
+    OUTPUT=$($PHPCS_BIN --colors -s $IGNORE_WARNINGS --standard=$PHPCS_CODING_STANDARD $ENCODING $IGNORE $SNIFFS $STAGED_FILES)
+    RETVAL=$?
+
+    if [ $RETVAL -ne 0 ]; then
+        echo "$OUTPUT" | less -R
+
+        REMOVE_STAGING_FOLDER
+        return $RETVAL
+    fi
+}
+
+function DO_ESLINT () {
+    local FILES_TO_CHECK=$1
+
+    if [ "$ESLINT_CONFIG_PATH" != "" ]; then
+        SNIFFS="--config $ESLINT_CONFIG_PATH"
+    else
+        SNIFFS=""
+    fi
+
+    STAGED_FILES=$(COPY_TO_STAGING $FILES_TO_CHECK)
+
+    OUTPUT=$($ESLINT_BIN $SNIFFS $STAGED_FILES)
+    RETVAL=$?
+
+    if [ $RETVAL -ne 0 ]; then
+        echo "$OUTPUT" | less -R
+
+        REMOVE_STAGING_FOLDER
+        return $RETVAL
+    fi
+}
+
+function REMOVE_STAGING_FOLDER () {
+    # delete temporary copy of staging area
+    rm -rf $TMP_STAGING
+}
+
+
+
+if [ $PHPCS_USE -ne 1 ]; then
+    echo "Not use PHP CodeSniffer"
+else
+    # simple check if code sniffer is set up correctly
+    if [ ! -x $PHPCS_BIN ]; then
+        echo "PHP CodeSniffer bin not found or executable -> $PHPCS_BIN"
+        exit 1
+    fi
+
+    # match files against whitelist
+    FILES_TO_CHECK=$(GET_FILES $PHPCS_FILE_PATTERN ${FILES[@]})
+
+    if [ "$FILES_TO_CHECK" != "" ]; then
+        DO_PHPCS $FILES_TO_CHECK
+        RETVAL=$?
+        if [ $RETVAL -ne 0 ]; then
+            exit $RETVAL
+        fi
+    fi
+fi
+
+if [ $ESLINT_USE -ne 1 ]; then
+    echo "Not use ESLint"
+else
+    # match files against whitelist
+    FILES_TO_CHECK=$(GET_FILES $ESLINT_FILE_PATTERN ${FILES[@]})
+
+    if [ "$FILES_TO_CHECK" != "" ]; then
+        DO_ESLINT $FILES_TO_CHECK
+        RETVAL=$?
+        if [ $RETVAL -ne 0 ]; then
+            exit $RETVAL
+        fi
+    fi
+fi
+
+REMOVE_STAGING_FOLDER
+
+exit 0
