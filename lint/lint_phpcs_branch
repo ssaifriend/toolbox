@@ -28,7 +28,7 @@ FULL_PATH=${GIT_PATH}/${SUB_PATH}
 cd ${FULL_PATH}
 eval "git fetch"
 eval "git checkout ${BRANCH_NAME}"
-FILES=$(git log --no-renames --name-only --pretty= master..${BRANCH_NAME} | sort | uniq -u)
+FILES=$(git log --no-renames --name-status --pretty= master..${BRANCH_NAME} | grep '^[^D]' | sed 's/^[MA] *//' | sort | uniq -u)
 FILES_TO_CHECK=$(FILE_FILTER ${PHPCS_FILE_PATTERN} ${FILES[@]})
 STAGED_FILES=$(COPY_TO_STAGING $FILES_TO_CHECK)
 
