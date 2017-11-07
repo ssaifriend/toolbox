@@ -8,15 +8,16 @@ git을 주 개발 스크립트로 사용하고, svn을 배포용으로 사용할
 실행 전 config-sample 파일을 config 파일로 복사 후 config 내 경로를 설정해주세요.
 
 ## 스크립트별 사용 방법
-공통 사항
+### 공통 사항
 * 아래 내용에서 arg로 있는 하위경로는 config의 git 폴더 내 하위폴더명 입니다. 최상위인 경우 ./ 를 사용하시면 됩니다.
 * 하위경로가 submodule이나 다른 git repo인 경우 해당 git repo의 git커밋ID를 써야 합니다.
 
-
+### 상세 사용방법
 * ./composer 하위경로 (특정 패키지)
   * svn의 composer를 업데이트 후 git의 동일 경로에 composer.lock을 복사한 뒤, composer install 합니다.
   * require-dev는 설치되지 않습니다.
   * 특정 패키지를 입력 한 경우 해당 패키지만 업데이트 합니다.
+  * composer.json이 변경 된 경우 git 에서 svn으로 수동 복사 해야 합니다.
 * ./clone 하위경로 git커밋ID
   * git의 commit을 svn에 적용합니다. (merge 커밋도 지원)
 * ./commit 커밋종류 (하위경로) (git커밋ID)
